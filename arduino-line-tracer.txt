@@ -7,7 +7,7 @@ const int irLeft = A2;
 const int irCenter = A4;   
 const int irRight = A5;    
 
-// 초기 임계값 (시리얼 모니터 값을 보고 나중에 수정하세요)
+// 초기 임계값
 int threshold = 150; 
 
 char lastState = 'F';      
