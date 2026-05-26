@@ -1,0 +1,97 @@
+#include "AFMotor_R4.h"
+
+AF_DCMotor motorLeft(2);   
+AF_DCMotor motorRight(3);  
+
+const int irLeft = A2;     
+const int irCenter = A4;   
+const int irRight = A5;    
+
+// 초기 임계값 (시리얼 모니터 값을 보고 나중에 수정하세요)
+int threshold = 150; 
+
+char lastState = 'F';      
+
+void setup() {
+  Serial.begin(9600); // 시리얼 통신 시작 (보드레이트 9600)
+  
+  pinMode(irLeft, INPUT);
+  pinMode(irCenter, INPUT);
+  pinMode(irRight, INPUT);
+  
+  motorLeft.setSpeed(60);
+  motorRight.setSpeed(60);
+  motorLeft.run(RELEASE);
+  motorRight.run(RELEASE);
+  
+  Serial.println("Line Tracer Sensor Test Started!");
+}
+
+void loop() {
+  // 1. 센서에서 아날로그 값 읽기
+  int valLeft = analogRead(irLeft);
+  int valCenter = analogRead(irCenter);
+  int valRight = analogRead(irRight);
+
+  // ----------------------------------------------------
+  // [디버깅] 시리얼 모니터에 현재 센서 값 출력하기 
+  Serial.print("Left: "); 
+  Serial.print(valLeft);
+  Serial.print("  |  Center: "); 
+  Serial.print(valCenter);
+  Serial.print("  |  Right: "); 
+  Serial.println(valRight);
+  // ----------------------------------------------------
+
+  // 2. 임계값을 기준으로 검은색(true)인지 흰색(false)인지 판별
+  bool isLeftBlack = (valLeft > threshold);
+  bool isCenterBlack = (valCenter > threshold);
+  bool isRightBlack = (valRight > threshold);
+
+  // 3. 주행 알고리즘
+  if (isCenterBlack) {
+    moveForward();
+    lastState = 'F';
+  } 
+  else if (isLeftBlack && !isRightBlack) {
+    turnLeft();
+    lastState = 'L';
+  } 
+  else if (isRightBlack && !isLeftBlack) {
+    turnRight();
+    lastState = 'R';
+  } 
+  else if (!isLeftBlack && !isCenterBlack && !isRightBlack) {
+    if (lastState == 'F') {
+      moveForward();
+    } else if (lastState == 'L') {
+      turnLeft();
+    } else if (lastState == 'R') {
+      turnRight();
+    }
+  } 
+  else {
+    moveForward(); 
+    lastState = 'F';
+  }
+  
+  // 센서값을 읽기 쉽도록 아주 약간의 지연 시간 추가
+  // 실제 고속 주행 시에는 이 부분을 지우는 것이 좋습니다.
+  delay(50); 
+}
+
+// ----------------- 모터 제어 함수들 (방향 반전됨) -----------------
+void moveForward() {
+  motorLeft.run(BACKWARD);
+  motorRight.run(BACKWARD);
+}
+
+void turnLeft() {
+  motorLeft.run(FORWARD); 
+  motorRight.run(BACKWARD);
+}
+
+void turnRight() {
+  motorLeft.run(BACKWARD);
+  motorRight.run(FORWARD); 
+}
